@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { type DecideState, decideOrder } from "@/app/actions";
+import { type DecideState, decideOrders } from "@/app/actions";
 import { SubmitButton } from "./submit-button";
 
+// Change the decision for a single order. Uses the same action as bulk planning, so the same
+// hard rules apply and the subscriber is messaged automatically.
 export function DecisionForm({
   eventId,
   orderId,
@@ -15,25 +17,28 @@ export function DecisionForm({
   current: string;
   options: { value: string; label: string }[];
 }) {
-  const [state, action] = useActionState<DecideState, FormData>(decideOrder, { error: null });
+  const [state, action] = useActionState<DecideState, FormData>(decideOrders, { message: null, errors: [] });
   return (
     <form action={action}>
-      <div className="flex gap-1.5">
-        <input type="hidden" name="event_id" value={eventId} />
-        <input type="hidden" name="order_id" value={orderId} />
+      <input type="hidden" name="event_id" value={eventId} />
+      <input type="hidden" name="order_ids" value={orderId} />
+      <div className="flex flex-wrap gap-2">
         <select
           name="choice"
           defaultValue={current}
-          aria-label={`Decision for ${orderId}`}
-          className="max-w-[240px] rounded-md border border-black/15 bg-white px-1.5 py-1 text-xs dark:border-white/20 dark:bg-neutral-900"
+          aria-label="Decision"
+          className="min-w-0 max-w-full flex-1 rounded-md border border-black/15 bg-white px-2.5 py-1.5 text-sm dark:border-white/20 dark:bg-neutral-900"
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        <SubmitButton variant="secondary" pendingLabel="…" className="!px-2 !py-1 text-xs">Save</SubmitButton>
+        <SubmitButton pendingLabel="Saving…">Save and notify</SubmitButton>
       </div>
-      {state.error && <p role="alert" className="mt-1 max-w-[280px] text-xs text-red-700 dark:text-red-300">{state.error}</p>}
+      {state.message && <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{state.message}</p>}
+      {state.errors.map((e) => (
+        <p key={e.reason} role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">{e.reason}</p>
+      ))}
     </form>
   );
 }

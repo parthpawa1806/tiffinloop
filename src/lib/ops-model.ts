@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 // Loads one day of ops state from Supabase and derives everything the ops pages and actions
 // need: which orders each dropout affects, the suggested plan, and who has been notified.
 // Pages and server actions both build from this, so they always agree.
@@ -73,13 +75,14 @@ export interface Resolution {
 
 export interface Notification {
   id: string;
-  event_id: string;
+  event_id: string | null; // null for manual chat messages
+  kind: "dropout" | "manual";
   canonical_subscriber_id: string;
   order_ids: string[];
   phone: string | null;
   body: string;
   status: "sent" | "failed_no_phone" | "followed_up";
-  deadline: string;
+  deadline: string | null;
   sent_at: string | null;
   follow_up_note: string | null;
 }
@@ -126,7 +129,12 @@ export interface EventView {
   complete: boolean;
 }
 
-export type Backup = BackupCook & { max_daily_orders: number; load: number; sheet_status: Cook["sheet_status"] };
+export type Backup = BackupCook & {
+  max_daily_orders: number;
+  load: number;
+  sheet_status: Cook["sheet_status"];
+  has_dropout_event: boolean;
+};
 
 export interface SuspectedDropout {
   cook: Cook;
@@ -160,7 +168,7 @@ function addDays(date: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function loadDay(date: string = TODAY): Promise<DayModel> {
+async function loadDayUncached(date: string): Promise<DayModel> {
   const sb = db();
   const [cooksR, subsR, ordersR, eventsR, capR, statsR, msgsR] = await Promise.all([
     sb.from("cooks").select("cook_id,canonical_cook_id,name,city,cuisine_specialty,serves_veg,serves_non_veg,serves_jain,phone,sheet_status,status_since,max_daily_orders"),
@@ -328,3 +336,9 @@ export function scenarioTime(model: Pick<DayModel, "clockAnchor">, real: string 
   if (!model.clockAnchor) return NOW;
   return new Date(NOW.getTime() + (new Date(real).getTime() - model.clockAnchor.getTime()));
 }
+
+// One load per request: the layout (sidebar badge) and the page share it.
+export const loadDay = cache((date: string = TODAY) => loadDayUncached(date));
+
+// Uncached: server actions re-read state after writing, so they must never see a cached copy.
+export const loadDayFresh = (date: string = TODAY) => loadDayUncached(date);
