@@ -3,19 +3,19 @@ import { FilterForm } from "@/components/filter-form";
 import { Badge, Empty, Muted, PageHeader, inputClass, tableClasses as t } from "@/components/ui";
 import { TODAY } from "@/lib/config";
 import { fmtDate, inr } from "@/lib/format";
-import type { City, Meal, OrderStatus } from "@/lib/normalize";
+import type { City, Meal } from "@/lib/normalize";
 import { loadDay } from "@/lib/ops-model";
 import { type OrderFilters, PAGE_SIZE, listOrders } from "@/lib/queries";
-import { ORDER_STATUS, orderStatus } from "@/lib/status";
+import { NO_SHOW_NOTE, ORDER_STATUS, orderStatus } from "@/lib/status";
 
 export default async function OrdersPage(props: PageProps<"/orders">) {
   const sp = (await props.searchParams) as Record<string, string | undefined>;
   const model = await loadDay(TODAY);
   const f: OrderFilters = {
-    range: sp.range === "30d" ? "30d" : "today",
+    range: sp.range === "30d" ? "30d" : sp.range === "7d" ? "7d" : "today",
     city: (sp.city || undefined) as City | undefined,
     meal: (sp.meal || undefined) as Meal | undefined,
-    status: (sp.status || undefined) as OrderStatus | undefined,
+    status: (sp.status || undefined) as OrderFilters["status"],
     cook: sp.cook || undefined,
     q: sp.q || undefined,
     page: Math.max(0, Number(sp.page) || 0),
@@ -35,11 +35,15 @@ export default async function OrdersPage(props: PageProps<"/orders">) {
 
   return (
     <div>
-      <PageHeader title="Orders" subtitle={`${total.toLocaleString("en-IN")} orders ${f.range === "today" ? "scheduled today" : "in the last 30 days"}`} />
+      <PageHeader
+        title="Orders"
+        subtitle={`${total.toLocaleString("en-IN")} orders ${f.range === "today" ? "scheduled today" : f.range === "7d" ? "in the last 7 days" : "in the last 30 days"}`}
+      />
 
       <FilterForm action="/orders">
         <select name="range" defaultValue={f.range} className={inputClass} aria-label="Date range">
           <option value="today">Today</option>
+          <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
         <select name="city" defaultValue={f.city ?? ""} className={inputClass} aria-label="City">
@@ -55,7 +59,7 @@ export default async function OrdersPage(props: PageProps<"/orders">) {
         </select>
         <select name="status" defaultValue={f.status ?? ""} className={inputClass} aria-label="Status">
           <option value="">All statuses</option>
-          {Object.entries(ORDER_STATUS).filter(([k]) => k !== "unknown").map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          {Object.entries(ORDER_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
         <select name="cook" defaultValue={f.cook ?? ""} className={`${inputClass} max-w-[200px]`} aria-label="Cook">
           <option value="">All cooks</option>
@@ -113,6 +117,7 @@ export default async function OrdersPage(props: PageProps<"/orders">) {
               </tbody>
             </table>
           </div>
+          {f.status === "cook_dropout" && <p className="mt-3 text-xs"><Muted>{NO_SHOW_NOTE}</Muted></p>}
           <div className="mt-3 flex items-center justify-between text-sm">
             <Muted>{from}–{to} of {total.toLocaleString("en-IN")}</Muted>
             <div className="flex gap-2">

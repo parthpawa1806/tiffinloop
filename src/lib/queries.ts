@@ -6,6 +6,7 @@ import "server-only";
 import { TODAY } from "./config";
 import type { City, Meal, OrderStatus } from "./normalize";
 import type { Notification } from "./ops-model";
+import type { Bucket } from "./status";
 import { db } from "./supabase";
 
 export const PAGE_SIZE = 50;
@@ -30,10 +31,10 @@ function addDays(date: string, n: number): string {
 
 // ── Orders ──────────────────────────────────────────────────────────────────
 export interface OrderFilters {
-  range: "today" | "30d";
+  range: "today" | "7d" | "30d";
   city?: City;
   meal?: Meal;
-  status?: OrderStatus | "reassigned" | "refunded_by_ops";
+  status?: Bucket | "reassigned" | "refunded_by_ops";
   cook?: string; // canonical cook id: matches all of that person's records
   q?: string;
   page: number;
@@ -64,11 +65,16 @@ export async function listOrders(f: OrderFilters, cookNames: Map<string, string>
       { count: "exact" },
     );
 
-  q = f.range === "today" ? q.eq("order_date", TODAY) : q.gte("order_date", addDays(TODAY, -30)).lte("order_date", TODAY);
+  // Same windows as the dashboard: 7 and 30 days are complete days before today.
+  q =
+    f.range === "today"
+      ? q.eq("order_date", TODAY)
+      : q.gte("order_date", addDays(TODAY, f.range === "7d" ? -7 : -30)).lt("order_date", TODAY);
   if (f.city) q = q.eq("subscribers.city", f.city);
   if (f.meal) q = q.eq("meal", f.meal);
   if (f.status === "reassigned") q = q.eq("order_resolutions.action", "reassign");
   else if (f.status === "refunded_by_ops") q = q.eq("order_resolutions.action", "refund");
+  else if (f.status === "open") q = q.in("status", ["pending", "in_progress", "unknown"]);
   else if (f.status) q = q.eq("status", f.status);
   if (f.cook) q = q.in("cook_id", cookRecords(f.cook));
   const term = f.q?.trim();

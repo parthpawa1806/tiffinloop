@@ -12,7 +12,7 @@ import { type AffectedOrder, dietLabel, ineligibleReason } from "@/lib/allocate"
 import { TODAY } from "@/lib/config";
 import { draftCookBriefs, draftSubscriberMessages } from "@/lib/drafts";
 import type { Meal } from "@/lib/normalize";
-import { type AffectedRow, loadDayFresh as loadDay } from "@/lib/ops-model";
+import { type AffectedRow, loadDayFresh as loadDay, scenarioTime } from "@/lib/ops-model";
 import { db } from "@/lib/supabase";
 
 const ACTOR = "ops";
@@ -61,8 +61,9 @@ export async function logDropout(form: FormData) {
       reason,
       source,
       source_message_id: message?.id ?? null,
-      // When ops first had the information: the WhatsApp message time if there is one.
-      reported_at: message?.sent_at ?? new Date().toISOString(),
+      // When ops first had the information: the WhatsApp message time if there is one,
+      // otherwise now on the scenario clock (never the real clock: the scenario is 23 Sep).
+      reported_at: message?.sent_at ?? scenarioTime(model, new Date()).toISOString(),
     })
     .select("id")
     .single();
