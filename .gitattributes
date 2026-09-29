@@ -1,0 +1,2 @@
+# Seed files are stored byte-for-byte as received. No line-ending conversion.
+data/raw/** -text
