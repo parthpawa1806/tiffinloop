@@ -49,7 +49,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
+        title="Leadership dashboard"
         subtitle={`Cook dropouts · ${label} · ${f.city ? CITY_NAME[f.city] : "All cities"} · ${f.meal ? (f.meal === "lunch" ? "Lunch" : "Dinner") : "All meals"}`}
       />
 

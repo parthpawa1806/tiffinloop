@@ -11,7 +11,7 @@ const NAV = [
   { href: "/cooks", label: "Cooks", icon: Users },
   { href: "/chats", label: "Chats", icon: MessageCircle },
   { href: "/refunds", label: "Refunds", icon: ReceiptIndianRupee },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Leadership dashboard", icon: LayoutDashboard },
 ];
 
 export function Sidebar({ needsAction, footer }: { needsAction: number; footer: ReactNode }) {
