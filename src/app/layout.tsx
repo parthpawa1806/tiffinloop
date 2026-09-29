@@ -40,8 +40,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <span className="font-semibold">TiffinLoop</span>
             <Link href="/" className="hover:underline">Ops: dropouts</Link>
             <Link href="/leadership" className="hover:underline">Leadership</Link>
-            <span className="ml-auto text-black/60 dark:text-white/60">
-              Scenario time: {nowLabel} IST
+            <span className="ml-auto text-black/60 dark:text-white/60" title="The clock starts when the first dropout is logged, then runs in real time">
+              Scenario starts {nowLabel} IST
             </span>
           </nav>
         </header>
